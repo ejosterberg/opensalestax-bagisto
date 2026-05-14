@@ -1,0 +1,40 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.1.0-alpha.1] - 2026-05-13
+
+### Added
+
+- Initial alpha release of the OpenSalesTax package for Bagisto v2.x on Laravel 11/12 and PHP 8.2+.
+- `Providers\OpenSalesTaxServiceProvider` — auto-discovered Laravel service provider that registers the config + cache + URL validator + cart-totals listener.
+- `Listeners\CartTotalsListener` — listens on Bagisto's `checkout.cart.collect.totals.after` event, builds an OST engine payload from the cart line items, and writes the resulting tax onto the cart's `tax_total` / `base_tax_total` columns.
+- `Support\OpenSalesTaxClientFactory` — builds the SDK `OpenSalesTax\Client` from validated config; returns `null` if `base_url` is empty or fails URL validation (the listener treats that as "engine not configured" and yields to Bagisto's built-in tax).
+- `Support\UrlValidator` — SSRF-defense URL validator that rejects RFC1918 / loopback / link-local / CGNAT / multicast hosts unless the merchant explicitly opts in via `OPENSALESTAX_ALLOW_PRIVATE_NETS=true` or `config('opensalestax.allow_private_nets', true)`.
+- `Support\RateCache` — Laravel-cache-backed wrapper that memoizes engine responses by ZIP-5 for the configured TTL (default 24h).
+- `Support\CartPayloadBuilder` — extracts gate inputs (currency, country, ZIP-5) and per-line OST `LineItem` array from a Bagisto cart object using duck-typed property access (no Bagisto Composer dep needed).
+- USD-only / US-only / ZIP-required gates: any failure yields silently to Bagisto's built-in tax calc.
+- Fail-soft default: engine errors fall back to Bagisto's built-in tax + log a warning. Fail-hard opt-in via `OPENSALESTAX_FAIL_HARD=true` (rethrows the engine exception so checkout surfaces it).
+- `config/opensalestax.php` publishable Laravel config with all 7 settings env-var-backed.
+- 30 unit tests covering: gates (currency/country/ZIP-5), cache hit/miss, URL validator (loopback / all RFC1918 ranges / link-local / CGNAT / multicast / public / opt-in / scheme allowlist), client factory (configured / empty / private-net-rejected), payload builder (single line / multiple lines / non-USD reject / non-US reject / no-ZIP reject), and the listener happy path / fail-soft / fail-hard branches.
+- Continuous integration on PHP 8.2 / 8.3 via GitHub Actions: PHPUnit + PHPStan (level max) + PHP-CS-Fixer + `composer audit`.
+- SonarQube quality gate green: 0 bugs / 0 vulnerabilities / 0 code smells / 0 security hotspots (security rating A, reliability rating A, maintainability rating A).
+
+### Security
+
+- TLS verification on by default for engine HTTP calls (opt-out via `OPENSALESTAX_TLS_VERIFY=false` only).
+- SSRF defense built into the URL validator (see `Support\UrlValidator` + 11 dedicated unit tests).
+- API key stored as env var, never logged; full request payloads never logged (only structured metadata: cart id, line count, HTTP status, RTT).
+- See `docs/SECURITY-REVIEW.md` for the v0.1 threat model and mitigation status (12 threats reviewed, 0 open critical/high/medium).
+
+### Notes
+
+- Live storefront integration on Bagisto v2.x has not yet been performed in this repo; the v0.1.0-alpha.1 tag exists for the cart integration test the orchestrator project will run on VM 916. Graduation alpha → v0.1.0 stable happens after that test passes.
+
+[Unreleased]: https://github.com/ejosterberg/opensalestax-bagisto/compare/v0.1.0-alpha.1...HEAD
+[0.1.0-alpha.1]: https://github.com/ejosterberg/opensalestax-bagisto/releases/tag/v0.1.0-alpha.1

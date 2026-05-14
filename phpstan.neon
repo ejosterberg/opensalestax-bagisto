@@ -1,0 +1,20 @@
+parameters:
+    level: max
+    paths:
+        - src
+    excludePaths:
+        - src/Config/opensalestax.php
+    reportUnmatchedIgnoredErrors: false
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        # The cart-totals listener types the Bagisto cart subject as `object` to
+        # avoid pulling bagisto/bagisto into composer requires (would require
+        # the full Laravel + Bagisto application stack). Runtime guards via
+        # method_exists() and property_exists() protect every accessor call.
+        # v0.2 candidate: ship Bagisto stub interfaces and tighten this.
+        -
+            message: '#Call to an undefined method object::#'
+            path: src/Listeners/CartTotalsListener.php
+        -
+            message: '#Access to an undefined property object::#'
+            path: src/Listeners/CartTotalsListener.php
