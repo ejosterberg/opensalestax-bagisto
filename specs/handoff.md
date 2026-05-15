@@ -4,11 +4,14 @@
 
 ## State at last commit
 
-`v0.1.0-alpha.1` shipped 2026-05-13. Public repo live; tag pushed; GitHub release created (prerelease).
+`v0.1.0` shipped 2026-05-15. Stable tag pushed; CHANGELOG, `specs/current-state.md`, and `docs/INTEGRATION-CHECK.md` "## Result" all updated with the VM-916 verification evidence (see those files for engine version, RTTs, jurisdiction breakdown, and observed log line).
 
-## Immediate next step (NOT this connector's session)
+`v0.1.0-alpha.1` and `v0.1.0` point at the same commit — the alpha→stable graduation was a documentation event, not a code event.
 
-The orchestrator project runs the live cart integration test on VM 916 (a pre-provisioned clean Bagisto v2.3 install). The test recipe is in `docs/INTEGRATION-CHECK.md`. When it passes, the orchestrator tags `v0.1.0` (graduates the alpha).
+## Immediate next step
+
+- Submit to Packagist for public `composer require ejosterberg/opensalestax-bagisto` discoverability (currently merchants install via the VCS-repo workaround documented in `docs/INTEGRATION-CHECK.md`).
+- Phase 02 spec — pick from the deferred list below.
 
 ## Open decisions
 

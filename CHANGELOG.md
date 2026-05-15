@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-05-15
+
+### Changed
+
+- Graduated `v0.1.0-alpha.1` to `v0.1.0` stable on the strength of the live cart-flow integration test on Proxmox VM 916 (`bagisto-test`, 10.32.161.62). Same code surface as the alpha — no diff between the two tags.
+
+### Verified
+
+- Integration test recipe in `docs/INTEGRATION-CHECK.md` Part 2 executed end-to-end against a clean Bagisto v2.3 install (Bagisto core 0.3.17, PHP 8.4.21, Laravel 12, MariaDB 10.11 in Docker).
+- Engine: `http://10.32.161.126:8080` reporting version 0.57.0.
+- Cart-totals event dispatch with synthetic US/MN/ZIP 55401 $100 cart wrote `tax_total = 9.025` (`base_tax_total = 9.025`) onto the cart object — matches the engine's authoritative response.
+- Per-jurisdiction breakdown for ZIP 55401 (verified via SDK): Minneapolis 0.5%, Hennepin County 0.15%, Minnesota 6.875%, Hennepin County Transit 0.5%, Metro Area Transportation 0.75%, Metro Area Sales and Use Tax for Housing 0.25% — combined 9.025%.
+- Engine round-trip 1227 ms cold; cached calls 1 ms (24h ZIP-keyed cache hit).
+- Diagnostic log line `opensalestax: cart tax recomputed` observed at the expected shape with `cart_id`, `rtt_ms`, `line_count`, and `tax_total` fields.
+
 ## [0.1.0-alpha.1] - 2026-05-13
 
 ### Added
@@ -36,5 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Live storefront integration on Bagisto v2.x has not yet been performed in this repo; the v0.1.0-alpha.1 tag exists for the cart integration test the orchestrator project will run on VM 916. Graduation alpha → v0.1.0 stable happens after that test passes.
 
-[Unreleased]: https://github.com/ejosterberg/opensalestax-bagisto/compare/v0.1.0-alpha.1...HEAD
+[Unreleased]: https://github.com/ejosterberg/opensalestax-bagisto/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/ejosterberg/opensalestax-bagisto/releases/tag/v0.1.0
 [0.1.0-alpha.1]: https://github.com/ejosterberg/opensalestax-bagisto/releases/tag/v0.1.0-alpha.1

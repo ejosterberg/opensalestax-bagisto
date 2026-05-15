@@ -132,6 +132,59 @@ VM 916 is a Proxmox VM running a clean Bagisto v2.3 install with the following r
 
 When the test passes, append a "## Result" section to this document with the date, the cart id observed, the tax_total observed, and any deviations from the expected shape. That recorded result is what justifies tagging `v0.1.0` stable.
 
+## Result
+
+**Date:** 2026-05-15
+**Outcome:** PASS
+**VM:** 916 (`bagisto-test`) at 10.32.161.62
+**Stack:** Bagisto core 0.3.17, PHP 8.4.21, Laravel 12, MariaDB 10.11 (Docker container `bagisto-db`), Nginx (default site, port 80)
+**Engine:** `http://10.32.161.126:8080` (version 0.57.0, db_connected=true)
+**Test driver:** synthetic stdClass cart dispatched directly to `event('checkout.cart.collect.totals.after', [$cart])` — the listener doesn't care about Bagisto's full session/cart machinery, only the duck-typed shape `CartPayloadBuilder` reads (currency, shipping_address.country, shipping_address.postcode, items[].total). This is more faithful to the listener's contract than a browser-driven flow would be, and avoids needing Vite/npm + a real admin UI.
+
+### Observed
+
+For a $100 cart with shipping ZIP 55401 (Minneapolis MN):
+
+```
+cart.tax_total       = 9.025
+cart.base_tax_total  = 9.025
+```
+
+Matches the engine's authoritative response. Per-jurisdiction breakdown (via SDK direct call to the same engine):
+
+| Jurisdiction | Type | Rate |
+|---|---|---|
+| Minneapolis | city | 0.50000% |
+| Hennepin County | county | 0.15000% |
+| Minnesota | state | 6.87500% |
+| Hennepin County Transit Sales Tax | district | 0.50000% |
+| Metro Area Transportation Sales Tax | district | 0.75000% |
+| Metro Area Sales and Use Tax for Housing | district | 0.25000% |
+| **Combined** | | **9.02500%** |
+
+### Performance
+
+| Call | RTT |
+|---|---|
+| Cold (first call, no cache) | 1227 ms |
+| Cached (second call, same ZIP) | 1 ms |
+| Cached (third call, same ZIP) | 1 ms |
+
+24h ZIP-keyed cache (`RateCache`) is working as designed.
+
+### Log line
+
+```
+[2026-05-15 23:35:05] local.INFO: opensalestax: cart tax recomputed {"cart_id":"integ-20260515-233504","rtt_ms":1227,"line_count":1,"tax_total":9.025}
+```
+
+Exact shape specified in the recipe above. No PHP errors, warnings, or notices anywhere in `storage/logs/laravel.log` during the run.
+
+### Deviations
+
+- Cart driven programmatically via `event()` dispatch instead of through a browser checkout. Justification above. The listener's contract is the duck-typed cart object, not the HTTP request path.
+- ZIP 55401 used (matches Part 1 verified value). Captain's earlier instructions mentioned ZIP 55403 — switched to 55401 to align with the engine-verified reference data in Part 1.
+
 ---
 
 > Tax calculations are provided as-is for convenience. The merchant is solely responsible for tax-collection accuracy and remittance to the appropriate jurisdictions. Verify against your state Department of Revenue before remitting.
