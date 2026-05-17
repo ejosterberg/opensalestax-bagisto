@@ -1,13 +1,13 @@
 <?php
 
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
 
 declare(strict_types=1);
 
 /*
- * OpenSalesTax for Bagisto — configuration.
+ * OpenSalesTax for Bagisto â€” configuration.
  *
- * IMPORTANT — Calculation-only disclaimer:
+ * IMPORTANT â€” Calculation-only disclaimer:
  *
  *   Tax calculations are provided as-is for convenience. The merchant is
  *   solely responsible for tax-collection accuracy and remittance to the
@@ -21,7 +21,7 @@ declare(strict_types=1);
 return [
     /*
      * Base URL of the merchant's OpenSalesTax engine (e.g. https://ost.example.com).
-     * No trailing slash required — the SDK trims it.
+     * No trailing slash required â€” the SDK trims it.
      *
      * env:    OPENSALESTAX_BASE_URL
      * type:   string|null

@@ -2,7 +2,7 @@
     "name": "ejosterberg/opensalestax-bagisto",
     "description": "Bagisto package — destination-based US sales tax via the self-hosted OpenSalesTax engine",
     "type": "bagisto-package",
-    "license": "Apache-2.0",
+    "license": ["Apache-2.0", "GPL-2.0-or-later"],
     "keywords": ["bagisto", "laravel", "tax", "sales-tax", "us-tax", "opensalestax", "tax-calculation"],
     "homepage": "https://github.com/ejosterberg/opensalestax-bagisto",
     "authors": [

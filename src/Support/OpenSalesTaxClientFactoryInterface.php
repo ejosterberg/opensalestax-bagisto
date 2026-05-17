@@ -1,6 +1,6 @@
 <?php
 
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
 
 declare(strict_types=1);
 
@@ -9,7 +9,7 @@ namespace OpenSalesTax\Bagisto\Support;
 use OpenSalesTax\Client;
 
 /**
- * Contract for "build an SDK Client (or null)" — exists so the listener
+ * Contract for "build an SDK Client (or null)" â€” exists so the listener
  * can be unit-tested against a fake factory without subclassing the
  * production one. Production binding is `OpenSalesTaxClientFactory`.
  */

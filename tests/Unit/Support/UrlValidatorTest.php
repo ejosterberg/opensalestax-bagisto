@@ -1,6 +1,6 @@
 <?php
 
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
 
 declare(strict_types=1);
 
@@ -107,7 +107,7 @@ final class UrlValidatorTest extends TestCase
             allowPrivateNets: false,
             hostResolver: static fn (string $h) => ['203.0.113.5'], // TEST-NET-3 documentation, treated as public by filter_var
         );
-        // No exception → pass.
+        // No exception â†’ pass.
         $v->validate('https://public.example/');
         $this->assertTrue(true);
     }
@@ -129,7 +129,7 @@ final class UrlValidatorTest extends TestCase
             allowPrivateNets: true,
             hostResolver: static fn (string $h) => ['10.32.161.126'],
         );
-        // No exception → pass even though the IP is RFC1918.
+        // No exception â†’ pass even though the IP is RFC1918.
         $v->validate('http://10.32.161.126:8080/');
         $this->assertTrue(true);
     }

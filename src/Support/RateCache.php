@@ -1,6 +1,6 @@
 <?php
 
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
 
 declare(strict_types=1);
 
@@ -20,7 +20,7 @@ use OpenSalesTax\Responses\CalculateResponse;
  *  - cache drivers that serialize via PHP serialize() handle readonly objects
  *    fine on modern PHP, but the array form is portable across drivers
  *    (json-encoded redis, file, memcached) and survives SDK refactors
- *  - testability — tests can hand-craft cache fixtures
+ *  - testability â€” tests can hand-craft cache fixtures
  *
  * Cache key shape: `ost:rate:{zip5}`. The TTL defaults to 24h.
  */
