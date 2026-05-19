@@ -12,6 +12,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ServiceProvider;
 use OpenSalesTax\Bagisto\Listeners\CartTotalsListener;
 use OpenSalesTax\Bagisto\Support\CartPayloadBuilder;
+use OpenSalesTax\Bagisto\Support\EngineConnectionTester;
 use OpenSalesTax\Bagisto\Support\OpenSalesTaxClientFactory;
 use OpenSalesTax\Bagisto\Support\OpenSalesTaxClientFactoryInterface;
 use OpenSalesTax\Bagisto\Support\RateCache;
@@ -31,6 +32,16 @@ final class OpenSalesTaxServiceProvider extends ServiceProvider
      * Path to the package config file (relative to project root).
      */
     private const CONFIG_PATH = __DIR__ . '/../../config/opensalestax.php';
+
+    /**
+     * Path to the admin route file.
+     */
+    private const ADMIN_ROUTES_PATH = __DIR__ . '/../Http/admin-routes.php';
+
+    /**
+     * Path to the package's blade view directory.
+     */
+    private const VIEWS_PATH = __DIR__ . '/../../resources/views';
 
     /**
      * Bagisto event fired after the cart totals collector finishes.
@@ -63,6 +74,15 @@ final class OpenSalesTaxServiceProvider extends ServiceProvider
             return new RateCache($cache, $ttl);
         });
 
+        $this->app->singleton(EngineConnectionTester::class, function ($app) {
+            /** @var LoggerInterface $logger */
+            $logger = $app->make(LoggerInterface::class);
+            return new EngineConnectionTester(
+                $app->make(OpenSalesTaxClientFactoryInterface::class),
+                $logger,
+            );
+        });
+
         $this->app->singleton(CartTotalsListener::class, function ($app) {
             /** @var ConfigRepository $config */
             $config = $app->make(ConfigRepository::class);
@@ -84,6 +104,17 @@ final class OpenSalesTaxServiceProvider extends ServiceProvider
             $this->publishes([
                 self::CONFIG_PATH => $this->resolvePublishedConfigPath(),
             ], 'config');
+        }
+
+        // Register the package's admin views under the `opensalestax`
+        // namespace so the TestConnectionController can resolve
+        // `opensalestax::admin.test-connection`.
+        $this->loadViewsFrom(self::VIEWS_PATH, 'opensalestax');
+
+        // Register the admin route file. Bagisto's admin auth middleware
+        // (registered globally as the `admin` alias) gates these routes.
+        if (file_exists(self::ADMIN_ROUTES_PATH)) {
+            $this->loadRoutesFrom(self::ADMIN_ROUTES_PATH);
         }
 
         $events->listen(self::EVENT_NAME, [CartTotalsListener::class, 'handle']);

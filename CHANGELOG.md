@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-05-19
+
+### Added
+
+- **Test Connection admin page (CP-4).** New admin route at
+  `/admin/opensalestax/test-connection` (gated by Bagisto's `admin`
+  auth middleware) that hits the configured engine's `/v1/health`
+  endpoint and displays the response inline ("✓ Engine v0.59.0 is ok
+  — database connected" on success, "✗ Engine base URL is not set"
+  or "✗ HTTP 500" on failure). Surfaces typo'd engine URLs +
+  unreachable engines at config time rather than at first checkout.
+  Brings this connector in line with WooCom v0.5, Vendure v1.3, and
+  Saleor v1.0 which already shipped this. Wired via:
+  - `Support\EngineConnectionTester` — pure service object (testable
+    in isolation; wraps the existing client factory + SDK `health()`
+    call; never throws).
+  - `Http\Controllers\Admin\TestConnectionController` — thin
+    controller that delegates to the service and returns either a
+    blade page or JSON.
+  - `Http\admin-routes.php` — registered automatically by
+    `OpenSalesTaxServiceProvider::boot()`.
+  - `resources/views/admin/test-connection.blade.php` — self-contained
+    single-page blade (no theme dependency, works on every Bagisto
+    admin theme).
+  - 5 unit tests exercising the service across null-client,
+    happy-path, db-disconnected, HTTP-failure, and transport-error
+    shapes.
+
 ## [0.1.1] - 2026-05-17
 
 ### Changed
