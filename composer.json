@@ -13,7 +13,7 @@
     ],
     "require": {
         "php": "^8.2",
-        "ejosterberg/opensalestax": "^0.1",
+        "ejosterberg/opensalestax": "^0.2.0",
         "illuminate/support": "^11.0|^12.0",
         "illuminate/cache": "^11.0|^12.0",
         "illuminate/contracts": "^11.0|^12.0",
