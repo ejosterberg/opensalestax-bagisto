@@ -7,7 +7,9 @@ declare(strict_types=1);
 namespace OpenSalesTax\Bagisto\Support;
 
 use OpenSalesTax\Address;
+use OpenSalesTax\Exceptions\OpenSalesTaxValidationException;
 use OpenSalesTax\LineItem;
+use OpenSalesTax\Shipping;
 
 /**
  * Build an OST engine request payload from a Bagisto cart.
@@ -23,7 +25,7 @@ use OpenSalesTax\LineItem;
 final class CartPayloadBuilder
 {
     /**
-     * @return array{currency: string, country: string, state: string|null, zip5: string, address: Address, lines: LineItem[]}|null
+     * @return array{currency: string, country: string, state: string|null, zip5: string, address: Address, lines: LineItem[], shipping: Shipping|null}|null
      */
     public function extract(object $cart): ?array
     {
@@ -47,7 +49,42 @@ final class CartPayloadBuilder
             'zip5'     => $zip5,
             'address'  => new Address(zip5: $zip5),
             'lines'    => $lines,
+            'shipping' => self::extractShipping($cart),
         ];
+    }
+
+    /**
+     * Pull the cart's shipping amount and return a typed Shipping value object
+     * the SDK accepts. Bagisto's Cart exposes `shipping_amount` and
+     * `base_shipping_amount` after the cart-totals collector runs (which is
+     * before our listener fires on `checkout.cart.collect.totals.after`).
+     *
+     * Returns null when shipping is missing, zero, or non-positive — engine
+     * treats absent shipping as "no shipping line", which is what we want
+     * for free shipping or pre-shipping-method carts. CP-9 / SDK v0.3.0.
+     */
+    private static function extractShipping(object $cart): ?Shipping
+    {
+        $candidates = ['shipping_amount', 'base_shipping_amount'];
+        foreach ($candidates as $name) {
+            $raw = self::readValue($cart, $name);
+            if (!is_numeric($raw)) {
+                continue;
+            }
+            $value = (float) $raw;
+            if ($value <= 0.0) {
+                continue;
+            }
+            try {
+                return new Shipping(
+                    amount: number_format($value, 2, '.', ''),
+                    separatelyStated: true,
+                );
+            } catch (OpenSalesTaxValidationException) {
+                return null;
+            }
+        }
+        return null;
     }
 
     /**

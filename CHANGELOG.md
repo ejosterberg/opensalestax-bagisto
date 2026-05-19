@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-19
+
+### Added
+
+- **CP-9 first-class shipping support.** The cart-totals listener
+  now extracts the cart's `shipping_amount` (with `base_shipping_amount`
+  fallback) and sends it to the OpenSalesTax engine as a top-level
+  `shipping` field (engine v0.59.0+ via the `shipping_first_class`
+  capability flag, exposed in `ejosterberg/opensalestax` v0.3.0).
+  The engine applies per-state shipping-taxability rules internally
+  (MN "tax-if-items-taxable", MO/VA "separately-stated", MD
+  "shipping-vs-handling"). The returned `shipping.tax_amount` is
+  added to the cart's `tax_total` and `base_tax_total` alongside
+  the item tax.
+- 4 new unit tests covering null / zero / positive shipping
+  amount handling and the `base_shipping_amount` fallback.
+
+### Changed
+
+- **Bumps `ejosterberg/opensalestax` constraint from `^0.2.0` to
+  `^0.3.0`.** Picks up the new third arg on `Client::calculate(addr,
+  lines, shipping?)` plus the `CalculateResponse::$shipping` and
+  `$coverageWarning` response fields. Backward compatible — carts
+  with no shipping amount behave identically to v0.2.1.
+
+### Notes
+
+- Out-of-nexus orders get 0 shipping tax (same gate as item tax).
+- Engine v0.59.0+ required for shipping to be honored. Older
+  engines silently ignore the field; cart shipping tax stays 0.
+
 ## [0.2.1] - 2026-05-19
 
 ### Changed

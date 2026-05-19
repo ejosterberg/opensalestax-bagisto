@@ -131,6 +131,48 @@ final class CartPayloadBuilderTest extends TestCase
         self::assertSame('MN', $payload['state']);
     }
 
+    // CP-9 (v0.3.0): first-class shipping support — builder maps Bagisto's
+    // cart-level `shipping_amount` (and `base_shipping_amount` fallback) to
+    // a typed Shipping value object, or null when no shipping is set.
+
+    public function testExtractShippingNullWhenAbsent(): void
+    {
+        $cart = $this->buildCart('USD', 'US', '55401', [['total' => 100.0]]);
+        $payload = (new CartPayloadBuilder())->extract($cart);
+        self::assertNotNull($payload);
+        self::assertNull($payload['shipping']);
+    }
+
+    public function testExtractShippingNullWhenZero(): void
+    {
+        $cart = $this->buildCart('USD', 'US', '55401', [['total' => 100.0]]);
+        $cart->shipping_amount = 0.0;
+        $payload = (new CartPayloadBuilder())->extract($cart);
+        self::assertNotNull($payload);
+        self::assertNull($payload['shipping']);
+    }
+
+    public function testExtractShippingPositive(): void
+    {
+        $cart = $this->buildCart('USD', 'US', '55401', [['total' => 100.0]]);
+        $cart->shipping_amount = 12.50;
+        $payload = (new CartPayloadBuilder())->extract($cart);
+        self::assertNotNull($payload);
+        self::assertInstanceOf(\OpenSalesTax\Shipping::class, $payload['shipping']);
+        self::assertSame('12.50', $payload['shipping']->amount);
+        self::assertTrue($payload['shipping']->separatelyStated);
+    }
+
+    public function testExtractShippingFallsBackToBaseAmount(): void
+    {
+        $cart = $this->buildCart('USD', 'US', '55401', [['total' => 100.0]]);
+        $cart->base_shipping_amount = 9.99;
+        $payload = (new CartPayloadBuilder())->extract($cart);
+        self::assertNotNull($payload);
+        self::assertNotNull($payload['shipping']);
+        self::assertSame('9.99', $payload['shipping']->amount);
+    }
+
     /**
      * @param array<int, array<string, mixed>> $items
      */

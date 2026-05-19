@@ -49,7 +49,7 @@ final class CartTotalsListener
         }
 
         /** @var Client $client */
-        /** @var array{currency: string, country: string, state: string|null, zip5: string, address: \OpenSalesTax\Address, lines: \OpenSalesTax\LineItem[]} $payload */
+        /** @var array{currency: string, country: string, state: string|null, zip5: string, address: \OpenSalesTax\Address, lines: \OpenSalesTax\LineItem[], shipping: \OpenSalesTax\Shipping|null} $payload */
         $cartId = $this->resolveCartId($cart);
 
         // Per-state nexus filter (CP-3, v0.2.0). When configured, short-circuit
@@ -95,14 +95,15 @@ final class CartTotalsListener
      * Call the engine via the rate cache. Returns the response on success,
      * null on a handled error (fail-soft); throws when fail-hard.
      *
-     * @param array{address: \OpenSalesTax\Address, lines: \OpenSalesTax\LineItem[], zip5: string, currency: string, country: string} $payload
+     * @param array{address: \OpenSalesTax\Address, lines: \OpenSalesTax\LineItem[], zip5: string, currency: string, country: string, shipping?: \OpenSalesTax\Shipping|null} $payload
      */
     private function callEngine(Client $client, array $payload, string $cartId, float $start): ?CalculateResponse
     {
+        $shipping = $payload['shipping'] ?? null;
         try {
             return $this->cache->remember(
                 $payload['zip5'],
-                static fn () => $client->calculate($payload['address'], $payload['lines']),
+                static fn () => $client->calculate($payload['address'], $payload['lines'], $shipping),
             );
         } catch (OpenSalesTaxException $e) {
             $this->logger->warning('opensalestax: engine /v1/calculate failed', [
@@ -172,7 +173,9 @@ final class CartTotalsListener
 
     private function applyTaxTotal(object $cart, CalculateResponse $response): void
     {
-        $taxTotal = (float) $response->taxTotal;
+        $itemTax     = (float) $response->taxTotal;
+        $shippingTax = $response->shipping !== null ? (float) $response->shipping->taxAmount : 0.0;
+        $taxTotal    = $itemTax + $shippingTax;
         $cart->tax_total = $taxTotal;
         $cart->base_tax_total = $taxTotal;
         if (method_exists($cart, 'save')) {
