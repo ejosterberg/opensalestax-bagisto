@@ -23,7 +23,7 @@ use OpenSalesTax\LineItem;
 final class CartPayloadBuilder
 {
     /**
-     * @return array{currency: string, country: string, zip5: string, address: Address, lines: LineItem[]}|null
+     * @return array{currency: string, country: string, state: string|null, zip5: string, address: Address, lines: LineItem[]}|null
      */
     public function extract(object $cart): ?array
     {
@@ -43,10 +43,65 @@ final class CartPayloadBuilder
         return [
             'currency' => strtoupper($currency),
             'country'  => strtoupper($country),
+            'state'    => self::extractState($shipping),
             'zip5'     => $zip5,
             'address'  => new Address(zip5: $zip5),
             'lines'    => $lines,
         ];
+    }
+
+    /**
+     * Extract a 2-letter US state code from the address. Bagisto's address
+     * typically exposes `state` (2-letter code) and sometimes `state_name`
+     * (full name). We accept the 2-letter form directly and best-effort
+     * normalize 50-state full names to 2-letter codes. Returns null if no
+     * useful state can be resolved.
+     */
+    private static function extractState(object $address): ?string
+    {
+        $raw = self::stringProp($address, 'state');
+        $upper = strtoupper(trim($raw));
+        if (preg_match('/^[A-Z]{2}$/', $upper) === 1) {
+            return $upper;
+        }
+        // Try state_name fallback for installs that store full name there.
+        $rawName = self::stringProp($address, 'state_name');
+        $normalized = self::stateNameToCode($rawName);
+        if ($normalized !== null) {
+            return $normalized;
+        }
+        if ($upper !== '') {
+            return self::stateNameToCode($raw);
+        }
+        return null;
+    }
+
+    /**
+     * @var array<string, string>
+     */
+    private const STATE_NAME_TO_CODE = [
+        'ALABAMA' => 'AL', 'ALASKA' => 'AK', 'ARIZONA' => 'AZ', 'ARKANSAS' => 'AR',
+        'CALIFORNIA' => 'CA', 'COLORADO' => 'CO', 'CONNECTICUT' => 'CT', 'DELAWARE' => 'DE',
+        'DISTRICT OF COLUMBIA' => 'DC', 'FLORIDA' => 'FL', 'GEORGIA' => 'GA', 'HAWAII' => 'HI',
+        'IDAHO' => 'ID', 'ILLINOIS' => 'IL', 'INDIANA' => 'IN', 'IOWA' => 'IA',
+        'KANSAS' => 'KS', 'KENTUCKY' => 'KY', 'LOUISIANA' => 'LA', 'MAINE' => 'ME',
+        'MARYLAND' => 'MD', 'MASSACHUSETTS' => 'MA', 'MICHIGAN' => 'MI', 'MINNESOTA' => 'MN',
+        'MISSISSIPPI' => 'MS', 'MISSOURI' => 'MO', 'MONTANA' => 'MT', 'NEBRASKA' => 'NE',
+        'NEVADA' => 'NV', 'NEW HAMPSHIRE' => 'NH', 'NEW JERSEY' => 'NJ', 'NEW MEXICO' => 'NM',
+        'NEW YORK' => 'NY', 'NORTH CAROLINA' => 'NC', 'NORTH DAKOTA' => 'ND', 'OHIO' => 'OH',
+        'OKLAHOMA' => 'OK', 'OREGON' => 'OR', 'PENNSYLVANIA' => 'PA', 'RHODE ISLAND' => 'RI',
+        'SOUTH CAROLINA' => 'SC', 'SOUTH DAKOTA' => 'SD', 'TENNESSEE' => 'TN', 'TEXAS' => 'TX',
+        'UTAH' => 'UT', 'VERMONT' => 'VT', 'VIRGINIA' => 'VA', 'WASHINGTON' => 'WA',
+        'WEST VIRGINIA' => 'WV', 'WISCONSIN' => 'WI', 'WYOMING' => 'WY',
+    ];
+
+    private static function stateNameToCode(string $name): ?string
+    {
+        $key = strtoupper(trim($name));
+        if ($key === '') {
+            return null;
+        }
+        return self::STATE_NAME_TO_CODE[$key] ?? null;
     }
 
     /**

@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-19
+
+### Added
+
+- **Per-state nexus filter (CP-3).** New `nexus_states` config option
+  accepts a comma-separated list of US 2-letter state codes
+  (e.g. `MN,WI,IA`) — also settable via the `OPENSALESTAX_NEXUS_STATES`
+  env var. When set and non-empty, the cart-totals listener
+  short-circuits the engine call for any cart shipping to a state not
+  in the list. Bagisto's built-in tax tables (typically: no tax) take
+  over for those carts. Unset / empty preserves v0.1 behavior (engine
+  called for every US/USD cart). Missing / unresolvable destination
+  state with the filter active is fail-closed (also short-circuit) —
+  the safer default for a merchant who explicitly opted in.
+
+  Address parsing: Bagisto's address typically exposes `state` as a
+  2-letter US code; we also accept full names via `state_name` and
+  normalize the 50-state list to 2-letter codes at the read site.
+
+  Brings this connector in line with WooCommerce v0.5, Vendure v1.2,
+  and Odoo v0.3, which already shipped this filter. Major win for
+  merchants with limited nexus footprints — typical merchant only has
+  1–3 nexus states and was previously paying engine RTT on every cart.
+
 ## [0.1.2] - 2026-05-19
 
 ### Added

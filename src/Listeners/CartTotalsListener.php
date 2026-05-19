@@ -49,8 +49,20 @@ final class CartTotalsListener
         }
 
         /** @var Client $client */
-        /** @var array{currency: string, country: string, zip5: string, address: \OpenSalesTax\Address, lines: \OpenSalesTax\LineItem[]} $payload */
+        /** @var array{currency: string, country: string, state: string|null, zip5: string, address: \OpenSalesTax\Address, lines: \OpenSalesTax\LineItem[]} $payload */
         $cartId = $this->resolveCartId($cart);
+
+        // Per-state nexus filter (CP-3, v0.2.0). When configured, short-circuit
+        // the engine call for any cart shipping to a state outside the merchant's
+        // nexus list. Fail-closed on unresolvable state. See config/opensalestax.php.
+        if ($this->shouldSkipForNexus($payload['state'])) {
+            $this->logger->debug('opensalestax: nexus-filter skipped engine call', [
+                'cart_id' => $cartId,
+                'state'   => $payload['state'] ?? '(unresolvable)',
+            ]);
+            return;
+        }
+
         $start = microtime(true);
 
         $response = $this->callEngine($client, $payload, $cartId, $start);
@@ -108,6 +120,44 @@ final class CartTotalsListener
             $this->maybeRethrow('OpenSalesTax listener failure: ' . $e->getMessage(), $e);
             return null;
         }
+    }
+
+    /**
+     * Returns true when the per-state nexus filter is enabled AND the
+     * destination state is NOT in the allowlist (or is unresolvable).
+     */
+    private function shouldSkipForNexus(?string $state): bool
+    {
+        $allowlist = $this->nexusAllowlist();
+        if ($allowlist === []) {
+            return false; // filter disabled
+        }
+        if ($state === null) {
+            return true; // fail-closed when filter is on
+        }
+        return !in_array(strtoupper($state), $allowlist, true);
+    }
+
+    /**
+     * Parse `opensalestax.nexus_states` into an array of upper-case 2-letter codes.
+     *
+     * @return list<string>
+     */
+    private function nexusAllowlist(): array
+    {
+        $rawValue = $this->config->get('opensalestax.nexus_states', '');
+        $raw = is_string($rawValue) ? $rawValue : '';
+        if (trim($raw) === '') {
+            return [];
+        }
+        $parts = preg_split('/[\s,]+/', strtoupper($raw)) ?: [];
+        $out = [];
+        foreach ($parts as $part) {
+            if (preg_match('/^[A-Z]{2}$/', $part) === 1 && !in_array($part, $out, true)) {
+                $out[] = $part;
+            }
+        }
+        return $out;
     }
 
     /**

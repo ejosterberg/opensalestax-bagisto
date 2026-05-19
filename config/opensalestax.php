@@ -87,4 +87,23 @@ return [
      * type:   bool
      */
     'tls_verify' => (bool) env('OPENSALESTAX_TLS_VERIFY', true),
+
+    /*
+     * Per-state nexus filter (CP-3, v0.2.0).
+     *
+     * Comma-separated list of US 2-letter state codes the merchant has
+     * nexus in (e.g. "MN,WI,IA"). When set and non-empty, the listener
+     * short-circuits the engine call for any cart whose ship-to state
+     * is NOT in this list — Bagisto's built-in tax (typically: zero)
+     * is left in place.
+     *
+     * Unset / empty preserves v0.1 behavior (engine called for every
+     * US/USD cart). Missing / unresolvable destination state with the
+     * filter active is fail-closed (also short-circuit) — the safer
+     * default for a merchant who explicitly opted in.
+     *
+     * env:    OPENSALESTAX_NEXUS_STATES
+     * type:   string (comma-separated)
+     */
+    'nexus_states' => (string) env('OPENSALESTAX_NEXUS_STATES', ''),
 ];

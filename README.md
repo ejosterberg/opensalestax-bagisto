@@ -53,8 +53,34 @@ Edit `config/opensalestax.php` or set the env vars below:
 | `fail_hard` | `OPENSALESTAX_FAIL_HARD` | `false` | When `true`, engine errors throw and surface to checkout. When `false` (default), engine errors fall back to Bagisto's built-in tax + log. |
 | `allow_private_nets` | `OPENSALESTAX_ALLOW_PRIVATE_NETS` | `false` | When `true`, allows `base_url` to resolve to private / loopback / CGNAT hosts. Required when self-hosting OST on the same LAN as Bagisto. |
 | `tls_verify` | `OPENSALESTAX_TLS_VERIFY` | `true` | Verify the engine's TLS certificate. Leave at `true` in production. |
+| `nexus_states` | `OPENSALESTAX_NEXUS_STATES` | (empty) | Per-state nexus filter (CP-3, v0.2.0). Comma-separated list of US 2-letter state codes (e.g. `MN,WI,IA`). When set, the listener short-circuits the engine call for carts shipping to states not in the list. Empty / unset = engine called for every US/USD cart (pre-v0.2 behavior). See below. |
 
 Until `base_url` is set the package is inert — Bagisto's built-in tax calc handles every cart.
+
+### Per-state nexus filter (CP-3, v0.2.0)
+
+Most US merchants only collect sales tax in a small set of states. Without
+a filter, every cart goes to the engine even when the merchant has no
+collection obligation for the destination.
+
+Set `nexus_states` (or `OPENSALESTAX_NEXUS_STATES`) to a comma-separated
+list of US 2-letter codes to restrict engine round-trips:
+
+```env
+OPENSALESTAX_NEXUS_STATES=MN,WI,IA
+```
+
+Behavior with the filter enabled:
+
+- Cart shipping to MN, WI, or IA → engine called as usual.
+- Cart shipping to any other state → short-circuit. Bagisto's built-in
+  tax tables (typically: no tax) take over.
+- Cart with missing / unresolvable destination state → fail-closed (also
+  short-circuit). Safer default for a merchant who explicitly opted in.
+
+Empty / unset = filter disabled (engine called for every cart).
+Brings this connector in line with WooCommerce v0.5, Vendure v1.2, and
+Odoo v0.3, which already shipped this filter.
 
 ## How it works
 

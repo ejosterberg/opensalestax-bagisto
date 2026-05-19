@@ -80,18 +80,73 @@ final class CartPayloadBuilderTest extends TestCase
         self::assertNull($payload);
     }
 
+    // --- CP-3: state extraction ---------------------------------------------
+
+    public function testStateExtractedAsTwoLetterCode(): void
+    {
+        $cart = $this->buildCart('USD', 'US', '55401', [['total' => 100.0]], state: 'MN');
+        $payload = (new CartPayloadBuilder())->extract($cart);
+        self::assertNotNull($payload);
+        self::assertSame('MN', $payload['state']);
+    }
+
+    public function testStateNormalizedToUpperCase(): void
+    {
+        $cart = $this->buildCart('USD', 'US', '55401', [['total' => 100.0]], state: 'mn');
+        $payload = (new CartPayloadBuilder())->extract($cart);
+        self::assertNotNull($payload);
+        self::assertSame('MN', $payload['state']);
+    }
+
+    public function testFullStateNameNormalizedToCode(): void
+    {
+        $cart = $this->buildCart('USD', 'US', '55401', [['total' => 100.0]], state: 'Minnesota');
+        $payload = (new CartPayloadBuilder())->extract($cart);
+        self::assertNotNull($payload);
+        self::assertSame('MN', $payload['state']);
+    }
+
+    public function testMissingStateYieldsNull(): void
+    {
+        $cart = $this->buildCart('USD', 'US', '55401', [['total' => 100.0]]);
+        $payload = (new CartPayloadBuilder())->extract($cart);
+        self::assertNotNull($payload);
+        self::assertNull($payload['state']);
+    }
+
+    public function testStateNameFallbackProperty(): void
+    {
+        $cart = new stdClass();
+        $cart->id = 'cart-abc';
+        $cart->cart_currency_code = 'USD';
+        $cart->shipping_address = (object) [
+            'country'    => 'US',
+            'postcode'   => '55401',
+            'state_name' => 'Minnesota',
+        ];
+        $cart->items = [(object) ['total' => 100.0]];
+
+        $payload = (new CartPayloadBuilder())->extract($cart);
+        self::assertNotNull($payload);
+        self::assertSame('MN', $payload['state']);
+    }
+
     /**
      * @param array<int, array<string, mixed>> $items
      */
-    private function buildCart(string $currency, string $country, string $postcode, array $items): stdClass
+    private function buildCart(string $currency, string $country, string $postcode, array $items, ?string $state = null): stdClass
     {
         $cart = new stdClass();
         $cart->id = 'cart-abc';
         $cart->cart_currency_code = $currency;
-        $cart->shipping_address = (object) [
+        $address = [
             'country'  => $country,
             'postcode' => $postcode,
         ];
+        if ($state !== null) {
+            $address['state'] = $state;
+        }
+        $cart->shipping_address = (object) $address;
         $cart->items = array_map(static fn (array $row) => (object) $row, $items);
         return $cart;
     }
